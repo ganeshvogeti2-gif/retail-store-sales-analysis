@@ -36,6 +36,7 @@ st.markdown(
         background: linear-gradient(120deg, #102544, #123c67);
         border: 1px solid #2a527d; margin-bottom: 1rem;
     }
+    .dashboard-label { margin: 0 0 .65rem 0; color: #c5d7ee; font-size: 1.15rem; font-weight: 700; letter-spacing: .02em; }
     .hero h1 { margin: 0 0 .35rem 0; color: #ffffff; }
     .hero p { margin: 0; color: #c5d7ee; }
     .small-note { color: #9fb4ce; font-size: .9rem; }
@@ -45,6 +46,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown('<div class="dashboard-label">Dashboard</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="hero"><h1>📊 Retail Store Sales Analysis</h1>'
     '<p>Interactive business intelligence dashboard · Clean, explore, analyze and export retail data</p></div>',
@@ -106,25 +108,28 @@ def open_new_tab_link(label, title, body):
 
 
 def show_table(title, frame, preview_rows=10, key_prefix="table"):
-    st.subheader(title)
+    # Keep the page compact: show at most 10 rows, with the remainder available separately.
+    st.markdown(
+        f'<h3 title="{html.escape(str(title))} · {len(frame):,} rows total">{html.escape(str(title))}</h3>',
+        unsafe_allow_html=True,
+    )
     if len(frame) <= 10:
         st.dataframe(frame, use_container_width=True, hide_index=True)
     else:
-        st.dataframe(frame.head(preview_rows), use_container_width=True, hide_index=True)
-        st.caption(f"Showing {min(preview_rows, len(frame))} of {len(frame):,} rows in this view.")
-        table_html = frame.to_html(index=False, escape=True, border=0)
-        open_new_tab_link(f"View all {len(frame):,} rows in a new tab", title, table_html)
+        st.dataframe(frame.head(10), use_container_width=True, hide_index=True)
+        remaining = frame.iloc[10:]
+        table_html = remaining.to_html(index=False, escape=True, border=0)
+        open_new_tab_link("View remaining data in a new tab", f"{title} — remaining data", table_html)
 
 
 def show_plot(title, fig, row_count=None):
-    st.subheader(title)
-    if row_count is not None and row_count > 10:
-        st.plotly_chart(fig, use_container_width=True, key=f"chart_{title}")
-        st.caption(f"This chart represents {row_count:,} data points/groups.")
-        chart_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
-        open_new_tab_link("Open interactive graph in a new tab", title, chart_html)
-    else:
-        st.plotly_chart(fig, use_container_width=True, key=f"chart_{title}")
+    st.markdown(
+        f'<h3 title="{html.escape(str(title))}">{html.escape(str(title))}</h3>',
+        unsafe_allow_html=True,
+    )
+    # Disable Plotly hover labels/highlight data popups across all dashboard charts.
+    fig.update_traces(hoverinfo="skip")
+    st.plotly_chart(fig, use_container_width=True, key=f"chart_{title}")
 
 
 def infer_date_column(frame):
