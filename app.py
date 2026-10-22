@@ -109,52 +109,26 @@ def open_new_tab_link(label, title, body):
 
 def show_table(title, frame, preview_rows=10, key_prefix="table"):
     # Keep the page compact: show at most 10 rows, with the remainder available separately.
-    limit = min(10, max(0, int(preview_rows)))
-    preview = frame.head(limit)
-    preview_lines = [
-        f"{col}: {value}"
-        for _, row in preview.iterrows()
-        for col, value in row.items()
-    ]
-    tooltip = f"{title} · {len(frame):,} rows total"
-    if preview_lines:
-        tooltip += "\nPreview (first 10 rows):\n" + "\n".join(preview_lines)
     st.markdown(
-        f'<h3 title="{html.escape(tooltip, quote=True)}">{html.escape(str(title))}</h3>',
+        f'<h3 title="{html.escape(str(title))} · {len(frame):,} rows total">{html.escape(str(title))}</h3>',
         unsafe_allow_html=True,
     )
-    if len(frame) <= limit:
+    if len(frame) <= 10:
         st.dataframe(frame, use_container_width=True, hide_index=True)
     else:
-        st.dataframe(preview, use_container_width=True, hide_index=True)
-        remaining = frame.iloc[limit:]
+        st.dataframe(frame.head(10), use_container_width=True, hide_index=True)
+        remaining = frame.iloc[10:]
         table_html = remaining.to_html(index=False, escape=True, border=0)
         open_new_tab_link("View remaining data in a new tab", f"{title} — remaining data", table_html)
 
 
 def show_plot(title, fig, row_count=None):
-    # Add a title tooltip with a compact preview of the plotted data.
-    tooltip_lines = []
-    for trace in fig.data[:10]:
-        xs = list(trace.x)[:10] if trace.x is not None else []
-        ys = list(trace.y)[:10] if trace.y is not None else []
-        trace_name = str(trace.name or title)
-        for i in range(min(10, max(len(xs), len(ys)))):
-            x_value = xs[i] if i < len(xs) else ""
-            y_value = ys[i] if i < len(ys) else ""
-            tooltip_lines.append(f"{trace_name}: {x_value} — {y_value}")
-    tooltip = title
-    if row_count is not None:
-        tooltip += f" · {row_count:,} data points/rows"
-    if tooltip_lines:
-        tooltip += "\nPreview (up to 10 points per trace):\n" + "\n".join(tooltip_lines)
     st.markdown(
-        f'<h3 title="{html.escape(tooltip, quote=True)}">{html.escape(str(title))}</h3>',
+        f'<h3 title="{html.escape(str(title))}">{html.escape(str(title))}</h3>',
         unsafe_allow_html=True,
     )
-    # Disable chart hover labels/highlight popups throughout the dashboard.
+    # Disable Plotly hover labels/highlight data popups across all dashboard charts.
     fig.update_traces(hoverinfo="skip")
-    fig.update_layout(hovermode=False)
     st.plotly_chart(fig, use_container_width=True, key=f"chart_{title}")
 
 
